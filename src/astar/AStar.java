@@ -5,6 +5,8 @@
  */
 package astar;
 
+import util.AStarAlg;
+
 /**
  *
  * @author m95952
@@ -16,6 +18,8 @@ public class AStar {
      */
     public static void main(String[] args) {
         // TODO code application logic here
+        AStarAlg star = new AStarAlg();
+        star.startAlgorithm();
     }
     
 }

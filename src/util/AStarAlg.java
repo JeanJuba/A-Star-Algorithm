@@ -20,24 +20,24 @@ public class AStarAlg {
     private Map<Integer, Cidade> mapaCidades = new HashMap();
     private List<Node> abertos;
     private List<Node> fechados;
-    
+
     private final int START = 1;
     private final int DESTINO = 38;
-    
-    public AStarAlg(){
+
+    public AStarAlg() {
         abertos = new ArrayList<>();
         fechados = new ArrayList<>();
-        
+
         Node firstNode = new Node(null);
         firstNode.setCidadeId(START);
         firstNode.setValodG(0);
         firstNode.setValorH(funcaoAvaliacaoAtualFim());
         firstNode.setValorF(firstNode.getValodG() + firstNode.getValorH());
-        
+
         abertos.add(firstNode);
         Criar_mapa(); //Cria o mapa com as informações fornecidas
     }
-    
+
     //<editor-fold defaultstate="collapsed" desc="Criacão Mapa">
     private void Criar_mapa() {
         mapaCidades.put(1, new Cidade(11003.611100f, 42102.500000f));
@@ -241,17 +241,17 @@ public class AStarAlg {
         add_nodo(38, 18);
         add_nodo(38, 22);
     }
-    
+
     private void add_nodo(int id1, int id2) {
         mapaCidades.get(id1).ad_vertice(id2);
     }
     //</editor-fold>
-    
+
     public class Cidade {
 
-        float x;
-        float y;
-        List<Integer> conexoes;
+        private float x;
+        private float y;
+        private List<Integer> conexoes;
 
         public Cidade(float x, float y) {
             this.x = x;
@@ -262,19 +262,39 @@ public class AStarAlg {
         public void ad_vertice(int c) {
             this.conexoes.add(c);
         }
+
+        public float getX() {
+            return x;
+        }
+
+        public void setX(float x) {
+            this.x = x;
+        }
+
+        public float getY() {
+            return y;
+        }
+
+        public void setY(float y) {
+            this.y = y;
+        }
+
+        public List<Integer> getConexoes() {
+            return conexoes;
+        }
     }
-    
-    
-    public class Node{
+
+    public class Node {
+
         private int cidadeId; //Id da cidde a qual se refere
         private double valodG; //Valor de custo para chegar até o nó
         private double valorH; //Valor deste nó ate o nó final
         private double valorF; //Avaliação global G + H do nó
-        
+
         private Node parent;
         private List<Node> sucessores;
-        
-        public Node(Node _parent){
+
+        public Node(Node _parent) {
             this.parent = _parent;
             this.sucessores = new ArrayList<>();
         }
@@ -318,51 +338,145 @@ public class AStarAlg {
         public void setParent(Node parent) {
             this.parent = parent;
         }
-        
-        public void addSucessor(Node sucessor){
+
+        public void addSucessor(Node sucessor) {
             this.sucessores.add(sucessor);
         }
-        
-    }
-    
-    private void startAlgorithm(){
-        while(!abertos.isEmpty()){
-            Node n = menorValorAberto();
-            if(n.getCidadeId() == DESTINO){
-                break;
-            }else{
-                
-                
-                
-            } 
+
+        public List<Node> getSucessores() {
+            return sucessores;
         }
-        
-        encontrarCaminho();
-        
     }
-    
-    private Node menorValorAberto(){
-        Node node = abertos.get(0);
+
+    public void startAlgorithm() {
+        while (!abertos.isEmpty()) {
+            Node n = menorValorAberto();
+            if (n.getCidadeId() == DESTINO) {
+                encontrarCaminho(n);
+                break;
+            } else {
+                gerarSucessores(n);
+
+            }
+        }
+
         
-        for(Node n: abertos){
-            if(n.getValorF() < node.getValorF()){
+
+    }
+
+    private Node menorValorAberto() {
+        Node node = abertos.get(0);
+
+        for (Node n : abertos) {
+            if (n.getValorF() < node.getValorF()) {
                 node = n;
             }
         }
         abertos.remove(node);
         fechados.add(node);
-        
+
         return node;
     }
-    
-    private Node gerarSucessores(){
-        return null;
+
+    private Node gerarSucessores(Node bestNode) {
+        for (int i : mapaCidades.get(bestNode.getCidadeId()).getConexoes()) {
+            Node n = new Node(bestNode);
+            n.setCidadeId(i);
+            n.setValodG(bestNode.getValodG() + getDistance(bestNode.getCidadeId(), i));
+
+            if (isAberto(n.getCidadeId()) != null) {
+                Node nodoAntigo = isAberto(n.getCidadeId());
+
+                if (nodoAntigo.getValodG() > n.getValodG()) {
+                    nodoAntigo.setParent(bestNode);
+                    nodoAntigo.setValodG(n.getValodG());
+                    nodoAntigo.setValorF(nodoAntigo.getValodG() + nodoAntigo.getValorH());
+                }
+
+                bestNode.addSucessor(nodoAntigo);
+
+            } else {
+                if (isFechado(n.getCidadeId()) != null) {
+                    Node nodoAntigo = isFechado(n.getCidadeId());
+
+                    if (nodoAntigo.getValodG() > n.getValodG()) {
+                        nodoAntigo.setParent(bestNode);
+                        nodoAntigo.setValodG(n.getValodG());
+                        nodoAntigo.setValorF(nodoAntigo.getValodG() + nodoAntigo.getValorH());
+                        
+                        for(Node no: nodoAntigo.getSucessores()){
+                            spreadNewBest(no, nodoAntigo.getValodG());
+                        }
+                    }
+                    
+                    bestNode.addSucessor(nodoAntigo);
+
+                } else {
+                    n.setValorF(n.getValodG() + n.getValorH());
+                    abertos.add(n);
+                    bestNode.addSucessor(n);
+                    
+                }
+
+            }
+
+        }
+
+        return bestNode;
     }
-    
-    private void encontrarCaminho(){
+
+    private void spreadNewBest(Node n, double valorG){
+        n.setValodG(valorG + getDistance(n.getCidadeId(), n.getParent().getCidadeId()));
+        for(Node no: n.getSucessores()){
+            spreadNewBest(no, n.getValodG());
+        }
         
     }
     
+    /**
+     * Retorna a distância euclidiana entre duas cidades.
+     * @param idCidade1
+     * @param idCidade2
+     * @return distância
+     */
+    private double getDistance(int idCidade1, int idCidade2) {
+        double c1x = mapaCidades.get(idCidade1).getX();
+        double c1y = mapaCidades.get(idCidade1).getY();
+        double c2x = mapaCidades.get(idCidade2).getX();
+        double c2y = mapaCidades.get(idCidade2).getY();
+
+        double distX = Math.abs(c1x - c2x);
+        double distY = Math.abs(c1y - c2y);
+
+        double distancia = Math.sqrt(Math.pow(distX, 2) + Math.pow(distY, 2));
+
+        return distancia;
+    }
+
+    /**
+     * Verifica se o nó já está na lista ABERTOS e se estiver retorna o nó 
+     * como 
+     * @param id
+     * @return 
+     */
+    private Node isAberto(int id) {
+        for (Node n : abertos) {
+            if (n.getCidadeId() == id) {
+                return n;
+            }
+        }
+        return null;
+    }
+
+    private Node isFechado(int id) {
+        for (Node n : fechados) {
+            if (n.getCidadeId() == id) {
+                return n;
+            }
+        }
+        return null;
+    }
+
     private double funcaoAvaliacaoInicialAtual() {
         return 0;
     }
@@ -371,4 +485,12 @@ public class AStarAlg {
         return 0;
     }
 
+    private void encontrarCaminho(Node n) {
+        
+        while(n.getParent() !=  null){
+            System.out.println("Cidade: " + n.getCidadeId());
+            n = n.getParent();
+        }
+        
+    }
 }
