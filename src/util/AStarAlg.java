@@ -6,7 +6,6 @@
 package util;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +20,18 @@ public class AStarAlg {
     private List<Node> abertos;
     private List<Node> fechados;
 
-    private final int START = 1;
-    private final int DESTINO = 38;
+    private final int START;
+    private final int DESTINO;
 
-    public AStarAlg() {
+    /**
+     * Construtor
+     * @param _start
+     * @param _end
+     */
+    public AStarAlg(int _start, int _end) {
+        START = _start;
+        DESTINO = _end;
+        
         abertos = new ArrayList<>();
         fechados = new ArrayList<>();
 
@@ -242,11 +249,21 @@ public class AStarAlg {
         add_nodo(38, 22);
     }
 
+    /**
+     * Adiciona cidade às conexões de outra cidade
+     *
+     * @param id1
+     * @param id2
+     */
     private void add_nodo(int id1, int id2) {
         mapaCidades.get(id1).ad_vertice(id2);
     }
     //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="Classes">
+    /**
+     * Classe que representa uma cidade.
+     */
     public class Cidade {
 
         private float x;
@@ -284,6 +301,9 @@ public class AStarAlg {
         }
     }
 
+    /**
+     * Classe que representa um nódo
+     */
     public class Node {
 
         private int cidadeId; //Id da cidde a qual se refere
@@ -347,23 +367,32 @@ public class AStarAlg {
             return sucessores;
         }
     }
-
+    //</editor-fold>
+    
+    //<editor-fold defaultstate="collapsed" desc="Algoritmo">
+    /**
+     * Inicia o algoritmo e continua
+     * enquanto houverem nódos abertos
+     */
     public void startAlgorithm() {
         while (!abertos.isEmpty()) {
             Node n = menorValorAberto();
+            System.out.println("Menor valor aberto: " + n.getCidadeId());
             if (n.getCidadeId() == DESTINO) {
                 encontrarCaminho(n);
                 break;
             } else {
                 gerarSucessores(n);
-
             }
         }
-
-        
-
     }
 
+    /**
+     * Procura o menor valor na lista de nódos abertos, retira esse valor de
+     * abertos e coloca em fechados
+     *
+     * @return
+     */
     private Node menorValorAberto() {
         Node node = abertos.get(0);
 
@@ -378,6 +407,12 @@ public class AStarAlg {
         return node;
     }
 
+    /**
+     * Gera os sucessores do melhor nódo encontrado,
+     *
+     * @param bestNode
+     * @return
+     */
     private Node gerarSucessores(Node bestNode) {
         for (int i : mapaCidades.get(bestNode.getCidadeId()).getConexoes()) {
             Node n = new Node(bestNode);
@@ -395,46 +430,46 @@ public class AStarAlg {
 
                 bestNode.addSucessor(nodoAntigo);
 
-            } else {
-                if (isFechado(n.getCidadeId()) != null) {
-                    Node nodoAntigo = isFechado(n.getCidadeId());
+            } else if (isFechado(n.getCidadeId()) != null) {
+                Node nodoAntigo = isFechado(n.getCidadeId());
 
-                    if (nodoAntigo.getValodG() > n.getValodG()) {
-                        nodoAntigo.setParent(bestNode);
-                        nodoAntigo.setValodG(n.getValodG());
-                        nodoAntigo.setValorF(nodoAntigo.getValodG() + nodoAntigo.getValorH());
-                        
-                        for(Node no: nodoAntigo.getSucessores()){
-                            spreadNewBest(no, nodoAntigo.getValodG());
-                        }
+                if (nodoAntigo.getValodG() > n.getValodG()) {
+                    nodoAntigo.setParent(bestNode);
+                    nodoAntigo.setValodG(n.getValodG());
+                    nodoAntigo.setValorF(nodoAntigo.getValodG() + nodoAntigo.getValorH());
+
+                    for (Node no : nodoAntigo.getSucessores()) {
+                        spreadNewBest(no, nodoAntigo.getValodG());
                     }
-                    
-                    bestNode.addSucessor(nodoAntigo);
-
-                } else {
-                    n.setValorF(n.getValodG() + n.getValorH());
-                    abertos.add(n);
-                    bestNode.addSucessor(n);
-                    
                 }
-
+                bestNode.addSucessor(nodoAntigo);
+            } else {
+                n.setValorF(n.getValodG() + n.getValorH());
+                abertos.add(n);
+                bestNode.addSucessor(n);
             }
-
         }
-
         return bestNode;
     }
 
-    private void spreadNewBest(Node n, double valorG){
+    /**
+     * Espalha o novo melhor valor para todos os sucessores de um novo nódo com
+     * melhor resultado.
+     *
+     * @param n
+     * @param valorG
+     */
+    private void spreadNewBest(Node n, double valorG) {
         n.setValodG(valorG + getDistance(n.getCidadeId(), n.getParent().getCidadeId()));
-        for(Node no: n.getSucessores()){
+        for (Node no : n.getSucessores()) {
             spreadNewBest(no, n.getValodG());
         }
-        
+
     }
-    
+
     /**
      * Retorna a distância euclidiana entre duas cidades.
+     *
      * @param idCidade1
      * @param idCidade2
      * @return distância
@@ -454,10 +489,11 @@ public class AStarAlg {
     }
 
     /**
-     * Verifica se o nó já está na lista ABERTOS e se estiver retorna o nó 
-     * como 
+     * Verifica se o nó já está na lista ABERTOS e se estiver retorna o nó se
+     * não estiver retorna nulo.
+     *
      * @param id
-     * @return 
+     * @return
      */
     private Node isAberto(int id) {
         for (Node n : abertos) {
@@ -468,6 +504,13 @@ public class AStarAlg {
         return null;
     }
 
+    /**
+     * Verifica se o nó já está na lista FECHADOS e se estiver retorna o nó se
+     * não estiver retorna nulo.
+     *
+     * @param id
+     * @return
+     */
     private Node isFechado(int id) {
         for (Node n : fechados) {
             if (n.getCidadeId() == id) {
@@ -485,12 +528,20 @@ public class AStarAlg {
         return 0;
     }
 
+    /**
+     * Refaz o caminho através do pai de cada nó até chegar até o começo do
+     * caminho.
+     *
+     * @param n
+     */
     private void encontrarCaminho(Node n) {
-        
-        while(n.getParent() !=  null){
-            System.out.println("Cidade: " + n.getCidadeId());
+
+        while (n.getParent() != null) {
+            System.out.println("Cidade: " + n.getCidadeId() + "\tValor G: " + n.getValodG());
             n = n.getParent();
         }
-        
+
+        System.out.println("Cidade: " + n.getCidadeId() + "\tValor G: " + n.getValodG());
     }
+    //</editor-fold>
 }

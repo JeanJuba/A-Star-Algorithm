@@ -18,7 +18,7 @@ public class AStar {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        AStarAlg star = new AStarAlg();
+        AStarAlg star = new AStarAlg(1, 25);
         star.startAlgorithm();
     }
     
